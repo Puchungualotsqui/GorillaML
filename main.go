@@ -1,5 +1,4 @@
-package gorillazml
+package main
 
 func main() {
-
 }
