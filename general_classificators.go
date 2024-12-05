@@ -1,4 +1,4 @@
-package main
+package gorillaz
 
 import (
 	"math"
@@ -25,14 +25,14 @@ func computeGradient(X [][]float64, Y [][]float64, coefficients []float64, inter
 			}
 			p := 1 / (1 + math.Exp(-z))
 
-			// Compute the error term
-			error := float64(Y[i][classIndex]) - p
+			// Compute the error_cal term
+			error_cal := float64(Y[i][classIndex]) - p
 
 			// Update gradients
 			mu.Lock()
-			gradientB += error
+			gradientB += error_cal
 			for j := 1; j < nFeatures; j++ {
-				gradientW[j-1] += error * X[i][j]
+				gradientW[j-1] += error_cal * X[i][j]
 			}
 			mu.Unlock()
 		}(i)
