@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"sync"
 )
 
 type LinearClassifier struct {
@@ -71,45 +72,53 @@ func (lc *LinearClassifier) FitSVMClassifier(X, Y [][]float64, learningRate, reg
 		lc.Coefficients[i] = make([]float64, nFeatures)
 	}
 
-	// Gradient Descent for each class (One-vs-Rest)
+	// WaitGroup to manage goroutines
+	var wg sync.WaitGroup
+	wg.Add(numClasses)
+
 	for c := 0; c < numClasses; c++ {
-		for iter := 0; iter < maxIter; iter++ {
-			// Initialize gradient updates
-			gradientW := make([]float64, nFeatures)
-			gradientB := 0.0
+		go func(c int) {
+			defer wg.Done()
+			// Gradient Descent for class c (One-vs-Rest)
+			for iter := 0; iter < maxIter; iter++ {
+				// Initialize gradient updates
+				gradientW := make([]float64, nFeatures)
+				gradientB := 0.0
 
-			for i := 0; i < nSamples; i++ {
-				// Create binary labels for class c (One-vs-Rest)
-				yi := 1.0
-				if Y[i][0] != float64(c) {
-					yi = -1.0
-				}
-
-				// Compute linear function value
-				linearOutput := lc.Intercept[c]
-				for j := 0; j < nFeatures; j++ {
-					linearOutput += lc.Coefficients[c][j] * X[i][j]
-				}
-
-				// Check if the sample is misclassified
-				if yi*linearOutput < 1 {
-					// Misclassified sample, update the gradients
-					for j := 0; j < nFeatures; j++ {
-						gradientW[j] += -yi * X[i][j]
+				for i := 0; i < nSamples; i++ {
+					// Create binary labels for class c (One-vs-Rest)
+					yi := 1.0
+					if Y[i][0] != float64(c) {
+						yi = -1.0
 					}
-					gradientB += -yi
-				}
-			}
 
-			// Update weights and bias with regularization term
-			for j := 0; j < nFeatures; j++ {
-				regularization := regularizationParameter * lc.Coefficients[c][j]
-				lc.Coefficients[c][j] -= learningRate * (gradientW[j]/float64(nSamples) + regularization)
+					// Compute linear function value
+					linearOutput := lc.Intercept[c]
+					for j := 0; j < nFeatures; j++ {
+						linearOutput += lc.Coefficients[c][j] * X[i][j]
+					}
+
+					// Check if the sample is misclassified
+					if yi*linearOutput < 1 {
+						// Misclassified sample, update the gradients
+						for j := 0; j < nFeatures; j++ {
+							gradientW[j] += -yi * X[i][j]
+						}
+						gradientB += -yi
+					}
+				}
+
+				// Update weights and bias with regularization term
+				for j := 0; j < nFeatures; j++ {
+					regularization := regularizationParameter * lc.Coefficients[c][j]
+					lc.Coefficients[c][j] -= learningRate * (gradientW[j]/float64(nSamples) + regularization)
+				}
+				lc.Intercept[c] -= learningRate * (gradientB / float64(nSamples))
 			}
-			lc.Intercept[c] -= learningRate * (gradientB / float64(nSamples))
-		}
+		}(c)
 	}
 
+	wg.Wait()
 	return nil
 }
 
@@ -129,10 +138,16 @@ func (lc *LinearClassifier) Predict(X [][]float64) ([][]float64, error) {
 		predictions[i] = make([]float64, nClasses)
 	}
 
-	// Compute predictions for each class
+	// Compute predictions for each sample concurrently
+	var wg sync.WaitGroup
+	wg.Add(nSamples)
 	for i := 0; i < nSamples; i++ {
-		computePredictions(XWithIntercept[i], lc.Coefficients, lc.Intercept, predictions[i])
+		go func(i int) {
+			defer wg.Done()
+			computePredictions(XWithIntercept[i], lc.Coefficients, lc.Intercept, predictions[i])
+		}(i)
 	}
+	wg.Wait()
 
 	return predictions, nil
 }

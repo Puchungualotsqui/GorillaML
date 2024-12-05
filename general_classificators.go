@@ -1,6 +1,9 @@
 package main
 
-import "math"
+import (
+	"math"
+	"sync"
+)
 
 // computeGradient calculates the gradient for weights and intercept for a specific class.
 func computeGradient(X [][]float64, Y [][]float64, coefficients []float64, intercept float64, classIndex int) ([]float64, float64) {
@@ -8,23 +11,33 @@ func computeGradient(X [][]float64, Y [][]float64, coefficients []float64, inter
 	gradientW := make([]float64, nFeatures-1)
 	gradientB := 0.0
 
+	var wg sync.WaitGroup
+	mu := &sync.Mutex{}
+
+	wg.Add(nSamples)
 	for i := 0; i < nSamples; i++ {
-		// Compute the predicted probability for the current class
-		z := intercept
-		for j := 1; j < nFeatures; j++ {
-			z += coefficients[j-1] * X[i][j]
-		}
-		p := 1 / (1 + math.Exp(-z))
+		go func(i int) {
+			defer wg.Done()
+			// Compute the predicted probability for the current class
+			z := intercept
+			for j := 1; j < nFeatures; j++ {
+				z += coefficients[j-1] * X[i][j]
+			}
+			p := 1 / (1 + math.Exp(-z))
 
-		// Compute the error_term term
-		errorTerm := float64(Y[i][classIndex]) - p
+			// Compute the error term
+			error := float64(Y[i][classIndex]) - p
 
-		// Update gradients
-		gradientB += errorTerm
-		for j := 1; j < nFeatures; j++ {
-			gradientW[j-1] += errorTerm * X[i][j]
-		}
+			// Update gradients
+			mu.Lock()
+			gradientB += error
+			for j := 1; j < nFeatures; j++ {
+				gradientW[j-1] += error * X[i][j]
+			}
+			mu.Unlock()
+		}(i)
 	}
+	wg.Wait()
 
 	return gradientW, gradientB
 }

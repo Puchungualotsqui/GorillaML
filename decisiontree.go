@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"sync"
 )
 
 type DecisionTreeNode struct {
@@ -25,9 +26,9 @@ func (dtc *DecisionTreeClassifier) FitDecisionTreeClassifier(X, Y [][]float64, m
 	if len(X) != len(Y) {
 		return fmt.Errorf("number of rows in X and Y must match")
 	}
-	dtc.Root = dtc.buildTree(X, Y, 0)
 	dtc.MaxDepth = maxDepth
 	dtc.MinSamples = minSamples
+	dtc.Root = dtc.buildTree(X, Y, 0)
 	return nil
 }
 
@@ -46,16 +47,29 @@ func (dtc *DecisionTreeClassifier) buildTree(X, Y [][]float64, depth int) *Decis
 	}
 
 	// Find the best split
-	bestFeature, bestThreshold := dtc.findBestSplit(X, Y)
+	bestFeature, bestThreshold := dtc.findBestSplitParallel(X, Y)
 
 	// Split dataset
 	leftIndices, rightIndices := dtc.splitDataset(X, bestFeature, bestThreshold)
 	leftX, leftY := dtc.extractSubset(X, Y, leftIndices)
 	rightX, rightY := dtc.extractSubset(X, Y, rightIndices)
 
-	// Create child nodes
-	leftChild := dtc.buildTree(leftX, leftY, depth+1)
-	rightChild := dtc.buildTree(rightX, rightY, depth+1)
+	// Create child nodes concurrently
+	var leftChild, rightChild *DecisionTreeNode
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		leftChild = dtc.buildTree(leftX, leftY, depth+1)
+	}()
+
+	go func() {
+		defer wg.Done()
+		rightChild = dtc.buildTree(rightX, rightY, depth+1)
+	}()
+
+	wg.Wait()
 
 	return &DecisionTreeNode{
 		FeatureIndex: bestFeature,
@@ -96,28 +110,40 @@ func (dtc *DecisionTreeClassifier) calculateClassCounts(Y [][]float64) map[float
 	return classCounts
 }
 
-func (dtc *DecisionTreeClassifier) findBestSplit(X, Y [][]float64) (int, float64) {
-	bestFeature, bestThreshold := -1, 0.0
-	bestImpurity := math.MaxFloat64
+func (dtc *DecisionTreeClassifier) findBestSplitParallel(X, Y [][]float64) (int, float64) {
 	nFeatures := len(X[0])
+	bestFeature := -1
+	bestThreshold := 0.0
+	bestImpurity := math.MaxFloat64
 
-	// Iterate over all features and thresholds
+	var wg sync.WaitGroup
+	mu := &sync.Mutex{}
+
 	for featureIndex := 0; featureIndex < nFeatures; featureIndex++ {
-		thresholds := dtc.uniqueValues(X, featureIndex)
-		for _, threshold := range thresholds {
-			leftIndices, rightIndices := dtc.splitDataset(X, featureIndex, threshold)
-			if len(leftIndices) == 0 || len(rightIndices) == 0 {
-				continue
-			}
+		wg.Add(1)
+		go func(featureIndex int) {
+			defer wg.Done()
+			thresholds := dtc.uniqueValues(X, featureIndex)
+			for _, threshold := range thresholds {
+				leftIndices, rightIndices := dtc.splitDataset(X, featureIndex, threshold)
+				if len(leftIndices) == 0 || len(rightIndices) == 0 {
+					continue
+				}
 
-			impurity := dtc.calculateImpurity(Y, leftIndices, rightIndices)
-			if impurity < bestImpurity {
-				bestImpurity = impurity
-				bestFeature = featureIndex
-				bestThreshold = threshold
+				impurity := dtc.calculateImpurity(Y, leftIndices, rightIndices)
+
+				mu.Lock()
+				if impurity < bestImpurity {
+					bestImpurity = impurity
+					bestFeature = featureIndex
+					bestThreshold = threshold
+				}
+				mu.Unlock()
 			}
-		}
+		}(featureIndex)
 	}
+
+	wg.Wait()
 
 	return bestFeature, bestThreshold
 }
@@ -138,7 +164,6 @@ func (dtc *DecisionTreeClassifier) giniImpurity(Y [][]float64, indices []int) fl
 	for _, index := range indices {
 		classCounts[Y[index][0]]++
 	}
-
 	total := float64(len(indices))
 	gini := 1.0
 	for _, count := range classCounts {
@@ -188,9 +213,17 @@ func (dtc *DecisionTreeClassifier) Predict(X [][]float64) ([]float64, error) {
 	}
 
 	predictions := make([]float64, len(X))
+	var wg sync.WaitGroup
+
 	for i, sample := range X {
-		predictions[i] = dtc.predictSample(sample, dtc.Root)
+		wg.Add(1)
+		go func(i int, sample []float64) {
+			defer wg.Done()
+			predictions[i] = dtc.predictSample(sample, dtc.Root)
+		}(i, sample)
 	}
+
+	wg.Wait()
 	return predictions, nil
 }
 
