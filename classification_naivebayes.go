@@ -12,8 +12,8 @@ type MultinomialNaiveBayes struct {
 	Classes        []float64
 }
 
-// Fit trains the Multinomial Naive Bayes model on the given training data
-func (nb *MultinomialNaiveBayes) Fit(X [][]float64, Y []float64) error {
+// FitMultinomialNaiveBayes Fit trains the Multinomial Naive Bayes model on the given training data
+func (nb *MultinomialNaiveBayes) FitMultinomialNaiveBayes(X [][]float64, Y []float64) error {
 	if len(X) != len(Y) {
 		return fmt.Errorf("number of rows in X and Y must match")
 	}
