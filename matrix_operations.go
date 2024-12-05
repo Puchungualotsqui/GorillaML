@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-func TransposeMatrix(A [][]float64) [][]float64 {
+func transposeMatrix(A [][]float64) [][]float64 {
 	nRows := len(A)
 	nCols := len(A[0])
 
@@ -48,7 +48,7 @@ func TransposeMatrix(A [][]float64) [][]float64 {
 	return result
 }
 
-func MatrixMultiplication(A, B [][]float64) [][]float64 {
+func matrixMultiplication(A, B [][]float64) [][]float64 {
 	nRows := len(A)
 	nCols := len(B[0])
 	nInner := len(A[0])
@@ -92,7 +92,7 @@ func MatrixMultiplication(A, B [][]float64) [][]float64 {
 	return result
 }
 
-func MultiplyMatrixVector(A [][]float64, b []float64) []float64 {
+func multiplyMatrixVector(A [][]float64, b []float64) []float64 {
 	nRows := len(A)
 	nCols := len(A[0])
 
@@ -130,8 +130,8 @@ func MultiplyMatrixVector(A [][]float64, b []float64) []float64 {
 	return result
 }
 
-// InvertMatrix computes the inverse of a square matrix using Gaussian Elimination with concurrency.
-func InvertMatrix(A [][]float64) ([][]float64, error) {
+// invertMatrix computes the inverse of a square matrix using Gaussian Elimination with concurrency.
+func invertMatrix(A [][]float64) ([][]float64, error) {
 	n := len(A)
 	if n == 0 || len(A[0]) != n {
 		return nil, fmt.Errorf("matrix must be square")
@@ -209,7 +209,7 @@ func InvertMatrix(A [][]float64) ([][]float64, error) {
 	return inverse, nil
 }
 
-func QRDecomposition(X [][]float64) (Q [][]float64, R [][]float64, err error) {
+func qRDecomposition(X [][]float64) (Q [][]float64, R [][]float64, err error) {
 	nRows, nCols := len(X), len(X[0])
 	Q = make([][]float64, nRows)
 	R = make([][]float64, nCols)
@@ -257,7 +257,7 @@ func QRDecomposition(X [][]float64) (Q [][]float64, R [][]float64, err error) {
 	return Q, R, nil
 }
 
-func BackSubstitution(R [][]float64, QtY []float64) []float64 {
+func backSubstitution(R [][]float64, QtY []float64) []float64 {
 	n := len(R)
 	beta := make([]float64, n)
 
@@ -297,8 +297,8 @@ func MinorMatrix(matrix [][]float64, excludeRow, excludeCol int) [][]float64 {
 	return minor
 }
 
-// Determinant calculates the determinant of a square matrix using concurrency.
-func Determinant(matrix [][]float64) (float64, error) {
+// determinant calculates the determinant of a square matrix using concurrency.
+func determinant(matrix [][]float64) (float64, error) {
 	n := len(matrix)
 	if n == 0 || len(matrix[0]) != n {
 		return 0, fmt.Errorf("matrix must be square")
@@ -325,7 +325,7 @@ func Determinant(matrix [][]float64) (float64, error) {
 
 			// Compute the minor and determinant of the minor matrix
 			minor := MinorMatrix(matrix, 0, col)
-			subDeterminant, err := Determinant(minor)
+			subDeterminant, err := determinant(minor)
 			if err != nil {
 				panic(err) // Forward any unexpected errors
 			}

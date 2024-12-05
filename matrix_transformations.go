@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-func AddInterceptColumn(X [][]float64) [][]float64 {
+func addInterceptColumn(X [][]float64) [][]float64 {
 	nRows := len(X)
 	nCols := len(X[0]) + 1 // Add one column for the intercept
 

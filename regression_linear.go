@@ -19,10 +19,10 @@ func (lr *LinearRegression) FitOLS(X, Y [][]float64) error {
 	}
 
 	// Add intercept column to X
-	XWithIntercept := AddInterceptColumn(X)
+	XWithIntercept := addInterceptColumn(X)
 
 	// Perform QR decomposition
-	Q, R, err := QRDecomposition(XWithIntercept)
+	Q, R, err := qRDecomposition(XWithIntercept)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (lr *LinearRegression) FitOLS(X, Y [][]float64) error {
 		}
 
 		// Solve R * beta = Q^T * y
-		beta := BackSubstitution(R, QtY)
+		beta := backSubstitution(R, QtY)
 
 		// Store intercept and coefficients
 		lr.Intercept[j] = beta[0]
@@ -64,7 +64,7 @@ func (lr *LinearRegression) FitLasso(X, Y [][]float64, lambda float64, maxIter i
 	}
 
 	// Add intercept column to X
-	XWithIntercept := AddInterceptColumn(X)
+	XWithIntercept := addInterceptColumn(X)
 
 	nSamples, nFeatures := len(XWithIntercept), len(XWithIntercept[0])
 	nTargets := len(Y[0])
@@ -101,7 +101,7 @@ func (lr *LinearRegression) FitLasso(X, Y [][]float64, lambda float64, maxIter i
 				}
 
 				// Update beta[j] using soft-thresholding
-				newBeta := SoftThresholding(numerator/denominator, lambda)
+				newBeta := softThresholding(numerator/denominator, lambda)
 				maxChange = math.Max(maxChange, math.Abs(newBeta-beta[j]))
 				beta[j] = newBeta
 			}
@@ -126,11 +126,11 @@ func (lr *LinearRegression) FitRidge(X, Y [][]float64, lambda float64) error {
 	}
 
 	// Add intercept column to X
-	XWithIntercept := AddInterceptColumn(X)
+	XWithIntercept := addInterceptColumn(X)
 
 	// Compute X^T * X
-	Xt := TransposeMatrix(XWithIntercept)
-	XtX := MatrixMultiplication(Xt, XWithIntercept)
+	Xt := transposeMatrix(XWithIntercept)
+	XtX := matrixMultiplication(Xt, XWithIntercept)
 
 	// Add lambda * I to X^T * X
 	nFeatures := len(XtX)
@@ -139,10 +139,10 @@ func (lr *LinearRegression) FitRidge(X, Y [][]float64, lambda float64) error {
 	}
 
 	// Compute X^T * Y
-	XtY := MatrixMultiplication(Xt, Y)
+	XtY := matrixMultiplication(Xt, Y)
 
 	// Perform QR decomposition on (X^T * X + lambda * I)
-	Q, R, err := QRDecomposition(XtX)
+	Q, R, err := qRDecomposition(XtX)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (lr *LinearRegression) FitRidge(X, Y [][]float64, lambda float64) error {
 		}
 
 		// Solve R * beta = Q^T * XtY
-		beta := BackSubstitution(R, QtY)
+		beta := backSubstitution(R, QtY)
 
 		// Store intercept and coefficients
 		lr.Intercept[j] = beta[0]
@@ -184,7 +184,7 @@ func (lr *LinearRegression) FitElasticNet(X, Y [][]float64, lambda, alpha float6
 	}
 
 	// Add intercept column to X
-	XWithIntercept := AddInterceptColumn(X)
+	XWithIntercept := addInterceptColumn(X)
 
 	nSamples, nFeatures := len(XWithIntercept), len(XWithIntercept[0])
 	nTargets := len(Y[0])
@@ -228,7 +228,7 @@ func (lr *LinearRegression) FitElasticNet(X, Y [][]float64, lambda, alpha float6
 				denominator += 2 * l2Penalty
 
 				// Update beta[j] using soft-thresholding for L1 regularization
-				newBeta := SoftThresholding(numerator/denominator, l1Penalty/denominator)
+				newBeta := softThresholding(numerator/denominator, l1Penalty/denominator)
 				maxChange = math.Max(maxChange, math.Abs(newBeta-beta[j]))
 				beta[j] = newBeta
 			}
@@ -253,7 +253,7 @@ func (lr *LinearRegression) FitRobust(X, Y [][]float64, delta float64, maxIter i
 	}
 
 	// Add intercept column to X
-	XWithIntercept := AddInterceptColumn(X)
+	XWithIntercept := addInterceptColumn(X)
 	nSamples := len(XWithIntercept)
 	nTargets := len(Y[0])
 
@@ -302,7 +302,7 @@ func (lr *LinearRegression) FitPolynomial(X, Y [][]float64, degree int) error {
 	var err error
 	var polyFeatures [][]float64
 	// Generate polynomial features
-	polyFeatures, err = GeneratePolynomialFeatures(X, degree)
+	polyFeatures, err = generatePolynomialFeatures(X, degree)
 	if err != nil {
 		return err
 	}
@@ -326,11 +326,11 @@ func (lr *LinearRegression) FitBayesian(X, Y [][]float64, alpha float64) error {
 	}
 
 	// Add intercept column to X
-	XWithIntercept := AddInterceptColumn(X)
+	XWithIntercept := addInterceptColumn(X)
 
 	// Compute X^T * X
-	Xt := TransposeMatrix(XWithIntercept)
-	XtX := MatrixMultiplication(Xt, XWithIntercept)
+	Xt := transposeMatrix(XWithIntercept)
+	XtX := matrixMultiplication(Xt, XWithIntercept)
 
 	// Add prior precision term (Alpha)
 	for i := 0; i < len(XtX); i++ {
@@ -338,14 +338,14 @@ func (lr *LinearRegression) FitBayesian(X, Y [][]float64, alpha float64) error {
 	}
 
 	// Compute X^T * Y
-	XtY := MatrixMultiplication(Xt, Y)
+	XtY := matrixMultiplication(Xt, Y)
 
 	// Compute the posterior mean: (X^T X + Alpha I)⁻¹ X^T Y
-	invXtX, err := InvertMatrix(XtX)
+	invXtX, err := invertMatrix(XtX)
 	if err != nil {
 		return fmt.Errorf("error inverting matrix: %v", err)
 	}
-	posteriorMean := MatrixMultiplication(invXtX, XtY)
+	posteriorMean := matrixMultiplication(invXtX, XtY)
 
 	// Store intercept and coefficients
 	nTargets := len(Y[0])
@@ -370,7 +370,7 @@ func (lr *LinearRegression) Predict(X [][]float64) ([][]float64, error) {
 	}
 
 	// Add intercept column to X
-	XWithIntercept := AddInterceptColumn(X)
+	XWithIntercept := addInterceptColumn(X)
 
 	// Prepare predictions matrix
 	nRows := len(XWithIntercept)

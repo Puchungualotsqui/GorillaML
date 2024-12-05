@@ -5,8 +5,8 @@ import (
 	"math"
 )
 
-// SoftThresholding applies the soft-thresholding operator
-func SoftThresholding(z, lambda float64) float64 {
+// softThresholding applies the soft-thresholding operator
+func softThresholding(z, lambda float64) float64 {
 	if z > lambda {
 		return z - lambda
 	} else if z < -lambda {
@@ -15,7 +15,7 @@ func SoftThresholding(z, lambda float64) float64 {
 	return 0.0
 }
 
-func GeneratePolynomialFeatures(X [][]float64, degree int) ([][]float64, error) {
+func generatePolynomialFeatures(X [][]float64, degree int) ([][]float64, error) {
 	if degree < 1 {
 		return nil, fmt.Errorf("degree must be at least 1")
 	}
