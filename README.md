@@ -325,3 +325,106 @@ var err error
 model := gorillaz.KNNClassifier{}
 predictions, err := model.Predict(XNew)
 ```
+## Utilities
+### Model Valuation
+#### Accuracy
+Calculate the accuracy of predictions compared to true labels.
+- yTrue *[]float64*: true class labels.
+- yPred *[]float64*: predicted class labels.
+- Returns *float64*: accuracy score, representing the proportion of correctly classified samples.
+```
+yTrue := []float64{1, 0, 1, 1, 0}
+yPred := []float64{1, 0, 1, 0, 0}
+
+accuracy := gorillaz.Accuracy(yTrue, yPred)
+```
+#### ConfusionMatrix
+Generate a confusion matrix for evaluating classification performance.
+- yTrue *[]float64*: true class labels.
+- yPred *[]float64*: predicted class labels.
+- Returns *map[string]int*: a confusion matrix with keys:
+	"TP": True Positives
+	"TN": True Negatives
+	"FP": False Positives
+	"FN": False Negatives
+```
+yTrue := []float64{1, 0, 1, 1, 0}
+yPred := []float64{1, 0, 1, 0, 0}
+
+confusionMatrix := gorillaz.ConfusionMatrix(yTrue, yPred)
+```
+#### Precision
+Calculate the precision metric, which is the proportion of true positive predictions among all positive predictions.
+- confusion *map[string]int*: a confusion matrix generated using ConfusionMatrix.
+- Returns *float64*: precision score.
+```
+confusion := map[string]int{
+    "TP": 10,
+    "FP": 2,
+    "TN": 5,
+    "FN": 3,
+}
+
+precision := gorillaz.Precision(confusion)
+```
+#### Recall
+Calculate the recall metric, which is the proportion of true positives identified among all actual positives.
+- confusion *map[string]int*: a confusion matrix generated using ConfusionMatrix.
+- Returns *float64*: recall score.
+```
+confusion := map[string]int{
+    "TP": 10,
+    "FP": 2,
+    "TN": 5,
+    "FN": 3,
+}
+
+recall := gorillaz.Recall(confusion)
+```
+#### F1Score
+Calculate the F1 score, which is the harmonic mean of precision and recall.
+- precision *float64*: precision score.
+- recall *float64*: recall score.
+- Returns *float64*: F1 score.
+```
+precision := 0.83
+recall := 0.77
+
+f1Score := gorillaz.F1Score(precision, recall)
+```
+### Save/Load
+#### SaveToFile
+Save a trained model to a file for later use.
+- filePath *string*: path to the file where the model will be saved.
+- model *interface{}*: the model object to be saved.
+- Returns *error*: an error if the save operation fails.
+```
+var err error
+filePath := "model.gob"
+
+model := gorillaz.LinearRegression{}
+// Assuming the model is trained...
+err = gorillaz.SaveToFile(filePath, model)
+if err != nil {
+    fmt.Println("Error saving model:", err)
+} else {
+    fmt.Println("Model saved successfully!")
+}
+```
+#### LoadFromFile
+Load a previously saved model from a file.
+- filePath *string*: path to the file where the model is stored.
+- model *interface{}*: a reference to the model object where the data will be loaded.
+- Returns *error*: an error if the load operation fails.
+```
+var err error
+filePath := "model.gob"
+
+var loadedModel gorillaz.LinearRegression
+err = gorillaz.LoadFromFile(filePath, &loadedModel)
+if err != nil {
+    fmt.Println("Error loading model:", err)
+} else {
+    fmt.Println("Model loaded successfully!")
+}
+```
