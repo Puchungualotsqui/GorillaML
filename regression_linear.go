@@ -8,7 +8,6 @@ import (
 type LinearRegression struct {
 	Coefficients [][]float64 // Coefficients for each feature per target
 	Intercept    []float64   // Intercept term for each target
-	ExtraInfo    map[string]float64
 }
 
 func (lr *LinearRegression) FitOLS(X, Y [][]float64) error {
@@ -247,57 +246,6 @@ func (lr *LinearRegression) FitElasticNet(X, Y [][]float64, lambda, alpha float6
 	return nil
 }
 
-func (lr *LinearRegression) FitRobust(X, Y [][]float64, delta float64, maxIter int, tol float64) error {
-	if len(X) != len(Y) {
-		return fmt.Errorf("number of rows in X and Y must match")
-	}
-
-	// Add intercept column to X
-	XWithIntercept := addInterceptColumn(X)
-	nSamples := len(XWithIntercept)
-	nTargets := len(Y[0])
-
-	// Initialize coefficients
-	lr.Coefficients = make([][]float64, nTargets)
-	lr.Intercept = make([]float64, nTargets)
-
-	// Initialize weights
-	weights := make([]float64, nSamples)
-	for i := range weights {
-		weights[i] = 1.0 // Initial weights
-	}
-
-	for target := 0; target < nTargets; target++ {
-		for iter := 0; iter < maxIter; iter++ {
-			// Apply weights
-			XWeighted, YWeighted := applyWeights(XWithIntercept, Y, weights, target)
-
-			// Solve weighted Ridge regression (regularized OLS)
-			lambda := 1e-5 // Small regularization to prevent singularity
-			err := lr.FitRidge(XWeighted, YWeighted, lambda)
-			if err != nil {
-				return fmt.Errorf("error in Ridge fitting: %v", err)
-			}
-
-			// Update weights based on residuals
-			maxChange := 0.0
-			for i := 0; i < nSamples; i++ {
-				residual := Y[i][target] - predictSingle(XWithIntercept[i], lr.Intercept[target], lr.Coefficients[target])
-				newWeight := huberLossResidual(residual, delta)
-				maxChange = math.Max(maxChange, math.Abs(newWeight-weights[i]))
-				weights[i] = newWeight
-			}
-
-			// Check for convergence
-			if maxChange < tol {
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
 func (lr *LinearRegression) FitPolynomial(X, Y [][]float64, degree int) error {
 	var err error
 	var polyFeatures [][]float64
@@ -397,7 +345,7 @@ func (lr *LinearRegression) Predict(X [][]float64) ([][]float64, error) {
 	return predictions, nil
 }
 
-func (lr *LinearRegression) Score(X, y [][]float64) (float64, error) {
+func (lr *LinearRegression) RSquare(X, y [][]float64) (float64, error) {
 	if lr.Coefficients == nil || lr.Intercept == nil {
 		return 0, fmt.Errorf("model is not trained")
 	}

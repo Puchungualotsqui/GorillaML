@@ -151,27 +151,3 @@ func (lc *LinearClassifier) Predict(X [][]float64) ([][]float64, error) {
 
 	return predictions, nil
 }
-
-func (lc *LinearClassifier) Score(X, Y [][]float64) (float64, error) {
-	// Predict the target values
-	predictions, err := lc.Predict(X)
-	if err != nil {
-		return 0, err
-	}
-
-	nSamples := len(Y)
-	nCorrect := 0
-
-	// Determine the predicted class and compare to actual
-	for i := 0; i < nSamples; i++ {
-		trueClass := findTrueClass(Y[i])
-		predictedClass := findPredictedClass(predictions[i])
-
-		if predictedClass == trueClass {
-			nCorrect++
-		}
-	}
-
-	// Return accuracy
-	return float64(nCorrect) / float64(nSamples), nil
-}
