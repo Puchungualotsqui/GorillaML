@@ -1,4 +1,4 @@
-# GorillaML
+# GorillazML
 
 Gorillaz is a machine learning library written in Go. It provides tools for building and evaluating various machine learning models, including regression, classification, and utilities for model persistence and evaluation metrics.
 
